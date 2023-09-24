@@ -1,6 +1,10 @@
 from .models import ProfilePage, Hobbies
 from rest_framework import serializers
 from .validators import requires_age_of_18
+from django.contrib.auth.models import User
+from . import validators
+
+
 
 class CreatedDateFormat(serializers.Field):
     def to_representation(self, value):
@@ -79,3 +83,30 @@ class ProfilePageDetailSerializer(ProfilePageSerializer):
 
     def get_author_full_name(self, obj):
         return f"{obj.author.first_name} {obj.author.last_name}" 
+
+
+#registration
+class RegistrationSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, validators=[validators.validated_password])
+    username = serializers.CharField(validators=[validators.unique_username])
+    email = serializers.EmailField(validators=[validators.email_validation,
+                                               validators.unique_email])
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'password', 'first_name', 'last_name', ]
+
+
+    def create(self, validated_data):
+        user = User.objects.create(
+            username=validated_data['username'],
+            password=validated_data['password'],
+            email=validated_data['email'],
+            first_name=validated_data['first_name'],
+            last_name=validated_data['last_name']
+        )
+        return user
+    
+
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=150)
+    password = serializers.CharField(max_length=150, write_only=True)
